@@ -1,6 +1,10 @@
 import os
+from dotenv import load_dotenv
 import asyncpg
 from pgvector.asyncpg import register_vector
+
+load_dotenv()
+
 
 async def setup_connection(conn):
     await register_vector(conn)
