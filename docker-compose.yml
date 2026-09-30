@@ -1,0 +1,22 @@
+version: '3.14'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: fin-rag-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+     - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: 
+      - "postgres"
+      - "-c"
+      - "maintenance_work_mem=2GB"
+
+volumes:
+  pgdata:
