@@ -18,21 +18,31 @@ CREATE TABLE IF NOT EXISTS sections(
     item_no TEXT NOT NULL,
     item_title TEXT NOT NULL,
     word_count INTEGER,
-    CONSTRAINT uq_filing_section UNIQUE (filing_id, item_no)
-
+    CONSTRAINT uq_sections UNIQUE(filing_id, item_no)
 );
 
 CREATE TABLE IF NOT EXISTS chunks(
     chunk_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
-    filing_id UUID NOT NULL REFERENCES filings(filing_id),
-    section_id UUID NOT NULL REFERENCES sections(section_id),
+    filing_id UUID NOT NULL REFERENCES filings(filing_id) ON DELETE CASCADE,
+    section_id UUID NOT NULL REFERENCES sections(section_id) ON DELETE CASCADE,
     chunk_index INTEGER NOT NULL, 
     raw_text TEXT NOT NULL,
-    lexical_search tsvector, 
-    semantic_search vector(786),
-    CONSTRAINT uq_filing_chunks UNIQUE(filing_id,section_id chunk_index)
+    lexical_search tsvector GENERATED ALWAYS AS (to_tsvector('english', raw_text)) STORED, 
+    embedding vector(768),
+    CONSTRAINT uq_filing_chunks UNIQUE(section_id, chunk_index)
 );
 
-CREATE INDEX full_text_search ON lexical_search USING GIN(to_tsvector('english', raw_text))
-CREATE INDEX vector_search ON semantic_search USING hnsw(raw_text)
+CREATE INDEX full_text_search ON chunks USING GIN(lexical_search);
+CREATE INDEX chunk_filing ON chunks(filing_id, chunk_index);
+CREATE INDEX cosine_similarity_search ON chunks USING hnsw(embedding vector_cosine_ops) WITH (m = 16, ef_construction= 64);
+
+CREATE TABLE IF NOT EXISTS agreements(
+    agreement_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    filing_id UUID NOT NULL REFERENCES filings(filing_id) ON DELETE CASCADE,
+    agreement_name TEXT, 
+    agreement_type TEXT NOT NULL, 
+    effective_date DATE , 
+    exhibit_reference TEXT NOT NULL, 
+    CONSTRAINT uq_agreements UNIQUE(filing_id, exhibit_reference)
+);
 
