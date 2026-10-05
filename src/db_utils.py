@@ -21,3 +21,13 @@ async def get_db_pool():
         init=setup_connection
     )
     return pool
+
+
+async def insert_filing(pool, filing_data: dict) -> str | None:
+    ...
+
+async def insert_section(pool, section_data: dict) -> str | None:
+    ...
+
+async def chunks_filing(pool, chunks_data: dict) -> str | None:
+    ...
