@@ -1,10 +1,12 @@
 import os
+import logging
 from dotenv import load_dotenv
 import asyncpg
 from pgvector.asyncpg import register_vector
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
 async def setup_connection(conn):
     await register_vector(conn)
@@ -30,6 +32,7 @@ async def insert_filing(pool, filing_data: dict) -> str | None:
     ON CONFLICT (accession_no) DO NOTHING RETURNING filing_id"""
 
     async with pool.acquire() as conn:
+        logger.info("INSERTING DATA IN FILINGS...")
         return await conn.fetchval(
             INSERT_FILING_QUERY,
             filing_data["cik"],
@@ -41,10 +44,22 @@ async def insert_filing(pool, filing_data: dict) -> str | None:
             filing_data["accesssion_no"],
             filing_data["source_url"]
         )
-    
-
+        
 async def insert_section(pool, section_data: dict) -> str | None:
-    ...
+    INSERT_SECTIONS_DATA = """INSERT INTO sections(
+    filing_id, item_no, item_title, word_count)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (section_id, chunk_index) DO NOTHING RETURNING section_id"""
+
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            INSERT_SECTIONS_DATA,
+            section_data['filing_id'],
+            section_data['item_no'],
+            section_data['item_title'],
+            section_data['word_count']
+        )
+
 
 async def chunks_filing(pool, chunks_data: dict) -> str | None:
-    ...
+    INSERT_CHUNKS = """INSERT INTO chunks(filing_id, section_id, chunk_index, raw_text, lexical_search, embedding) VALUES()"""
