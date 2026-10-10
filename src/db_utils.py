@@ -29,7 +29,8 @@ async def insert_filing(pool, filing_data: dict) -> str | None:
     INSERT_FILING_QUERY = """INSERT INTO filings(
     cik, company_name, ticker, form_type, filing_date, fiscal_year, accession_no, source_url) 
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    ON CONFLICT (accession_no) DO NOTHING RETURNING filing_id"""
+    ON CONFLICT (accession_no) DO NOTHING 
+    RETURNING filing_id"""
 
     async with pool.acquire() as conn:
         logger.info("INSERTING DATA IN FILINGS...")
@@ -49,9 +50,11 @@ async def insert_section(pool, section_data: dict) -> str | None:
     INSERT_SECTIONS_DATA = """INSERT INTO sections(
     filing_id, item_no, item_title, word_count)
     VALUES ($1, $2, $3, $4)
-    ON CONFLICT (section_id, chunk_index) DO NOTHING RETURNING section_id"""
+    ON CONFLICT (section_id, chunk_index) DO NOTHING 
+    RETURNING section_id"""
 
     async with pool.acquire() as conn:
+        logger.info("INSERTING DATA IN SECTIONS...")
         return await conn.fetchval(
             INSERT_SECTIONS_DATA,
             section_data['filing_id'],
@@ -61,5 +64,14 @@ async def insert_section(pool, section_data: dict) -> str | None:
         )
 
 
-async def chunks_filing(pool, chunks_data: dict) -> str | None:
-    INSERT_CHUNKS = """INSERT INTO chunks(filing_id, section_id, chunk_index, raw_text, lexical_search, embedding) VALUES()"""
+async def chunks_filing(pool, chunks_data: list[tuple]) -> str | None:
+    INSERT_CHUNKS = """INSERT INTO chunks(
+    filing_id, section_id, chunk_index, raw_text, lexical_search, embedding)
+    VALUES($1, $2, $3, $4, $5, $6) 
+    ON CONFLICT (section_id, chunk_index) DO NOTHING 
+    RETURNING chunk_id"""
+
+    async with pool.acquire() as conn:
+        logger.info("INSERTING DATA IN CHUNKS...")
+        return await conn.executemany(INSERT_CHUNKS, chunks_data)
+
