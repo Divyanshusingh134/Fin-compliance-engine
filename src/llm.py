@@ -46,7 +46,7 @@ async def embed(texts: list[str], max_retries: int = 3):
             if e.code != 429 or attempt == max_retries - 1:
                 logger.error(f"API Error: {e}")
                 raise
-            wait_time = 2 ** attempt
+            wait_time = 2 ** (attempt + 1)
             logger.info(f"Rate limit reached...Retrying in {wait_time}")
             await asyncio.sleep(wait_time)
 

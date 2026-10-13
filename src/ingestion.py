@@ -14,7 +14,7 @@ set_identity(f"{MY_NAME} {MY_EMAIL}")
 
 form_type = ("10-K", "8-K", "10-Q")
 
-async def get_data(pool, ticker: str):
+async def ingest_filing_data(pool, ticker: str):
     company = Company(f"{ticker}")
 
     current_year = datetime.now().year
@@ -39,13 +39,20 @@ async def get_data(pool, ticker: str):
                 'source_url': filing.document.url
             }
             filing_ID = await insert_filing(pool=pool, filing_data=filing_data)
+            assert filing_ID is not None
+            await ingest_section_data(filing_id=filing_ID, form=form)
+
+async def ingest_section_data(filing_id: str, form):
+    tenk = form.obj()
+    
+
 
 
 async def main():
     pool = await get_db_pool()
 
     try:
-        await get_data(pool, 'AAPL')
+        await ingest_filing_data(pool, 'AAPL')
     finally:
         await pool.close()
 

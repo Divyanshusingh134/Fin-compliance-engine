@@ -64,7 +64,7 @@ async def insert_section(pool, section_data: dict) -> str | None:
         )
 
 
-async def chunks_filing(pool, chunks_data: list[tuple]) -> str | None:
+async def insert_chunks(pool, chunks_data: list[tuple]) -> str | None:
     INSERT_CHUNKS = """INSERT INTO chunks(
     filing_id, section_id, chunk_index, raw_text, lexical_search, embedding)
     VALUES($1, $2, $3, $4, $5, $6) 
@@ -75,3 +75,13 @@ async def chunks_filing(pool, chunks_data: list[tuple]) -> str | None:
         logger.info("INSERTING DATA IN CHUNKS...")
         return await conn.executemany(INSERT_CHUNKS, chunks_data)
 
+
+async def insert_agreements(pool, agreements_data: dict) -> str | None:
+    INSERT_AGREEMENTS = """INSERT INTO agreements(
+    filing_id, agreement_name, agreement_type, effective_date, exhibit_reference)
+    VALUES($1, $2, $3, $4, $5)
+    ON CONFLICT(filing_id, exhibit_reference)
+    RETURNING agreement_id"""
+
+    async with pool.acquire() as conn:
+        ...
