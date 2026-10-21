@@ -28,12 +28,15 @@ CREATE TABLE IF NOT EXISTS chunks(
     chunk_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
     filing_id UUID NOT NULL REFERENCES filings(filing_id) ON DELETE CASCADE,
     section_id UUID NOT NULL REFERENCES sections(section_id) ON DELETE CASCADE,
+    heading_path TEXT,
     chunk_index INTEGER NOT NULL, 
     raw_text TEXT NOT NULL,
     lexical_search tsvector GENERATED ALWAYS AS (to_tsvector('english', raw_text)) STORED, 
     embedding vector(768),
+    structured_data JSONB DEFAULT '{}'::jsonb,
     CONSTRAINT uq_filing_chunks UNIQUE(section_id, chunk_index)
 );
+
 
 CREATE INDEX full_text_search ON chunks USING GIN(lexical_search);
 CREATE INDEX chunk_filing ON chunks(filing_id, chunk_index);
@@ -53,6 +56,7 @@ CREATE TABLE IF NOT EXISTS agreement_chunks(
     agreement_chunk_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
     agreement_id UUID NOT NULL REFERENCES agreements(agreement_id) ON DELETE CASCADE, 
     filing_id UUID NOT NULL REFERENCES filings(filing_id) ON DELETE CASCADE, 
+    heading_path TEXT,
     chunk_index INTEGER NOT NULL, 
     raw_text TEXT NOT NULL, 
     lexical_search tsvector GENERATED ALWAYS AS (to_tsvector('english', raw_text)) STORED, 
@@ -61,5 +65,5 @@ CREATE TABLE IF NOT EXISTS agreement_chunks(
 );
 
 CREATE INDEX full_text_search_agreements ON agreement_chunks USING GIN(lexical_search);
-CREATE INDEX chunk_filin_agreements ON agreement_chunks(filing_id, chunk_index);
+CREATE INDEX chunk_filing_agreements ON agreement_chunks(filing_id, chunk_index);
 CREATE INDEX cosine_similarity_search_agreements ON agreement_chunks USING hnsw(embedding vector_cosine_ops) WITH (m = 16, ef_construction= 64);

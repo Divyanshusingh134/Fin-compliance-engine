@@ -43,8 +43,8 @@ async def ingest_filing_data(pool, ticker: str):
             await ingest_section_data(filing_id=filing_ID, form=form)
 
 async def ingest_section_data(filing_id: str, form):
-    tenk = form.obj()
-    
+    ...
+
 
 
 
