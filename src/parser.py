@@ -1,10 +1,13 @@
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment, Tag
+from bs4.element import NavigableString
 from dataclasses import dataclass, field
 
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
 PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
+BLOCK     = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
+             "section", "center", "blockquote"]
 
 
 @dataclass
@@ -13,7 +16,7 @@ class Block:
     kind: str # heading , para, pagebreak, table, anchor
     text: str = ""
     level: int = 0 # for headings
-    rows: list = field(default_factory=list)  # for tables
+    rows: list = field(default_factory=list)  # for table
 
 
 def norm(s: str) -> str:
@@ -65,9 +68,31 @@ class Walker:
         self.t = targets
         self.buf = []
         self.out = []
+
+    def flush(self):
+        self.leaf()
+        self.buf = []
         pass
 
-    def walk(self):
+    def walk(self, parent):
+        for ch in parent.children:
+            if isinstance(ch, Comment): 
+                continue
+            if isinstance(ch, NavigableString):
+                self.buf.append(ch)
+                continue
+
+            if ch.name == "hr":
+                self.flush()
+                self.out.append(Block("pagebreak"))
+                continue
+
+            if ch in BLOCK:
+                pass
+
+        pass
+
+    def leaf(self):
         pass
 
 
@@ -77,7 +102,7 @@ def parse_filing(html: str):
     toc = read_toc(soup)
     targets = {t: (p, i) for p, i, t in toc}
     w = Walker(targets=targets)
-    w.walk()
+    w.walk(soup.body or soup)
     pass
 
 
