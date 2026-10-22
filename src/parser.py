@@ -2,7 +2,8 @@ import re
 from bs4 import BeautifulSoup
 
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
-PART_RE = re.compile(r"")
+PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
+ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
 
 
 
@@ -31,7 +32,7 @@ def prepare(html: str) -> BeautifulSoup:
     return soup
 
 
-def read_toc(soup: BeautifulSoup):
+def read_toc(soup: BeautifulSoup) -> list:
     toc, part, seen = [], None, set()
     for a in soup.find_all('a', href=True):
         href = a.get('href')
@@ -40,20 +41,35 @@ def read_toc(soup: BeautifulSoup):
         target = href[1:]
         txt = norm(a.get_text(""))
 
+        if m:=PART_RE.match(txt):
+            part = m.group(0).upper()
+            toc.append((part, None, target))
+        elif (m:= ITEM_RE.match(txt)) and target not in seen:
+            item = m.group(0).upper()
+            toc.append((part, item, target))
+        seen.add(target)
 
-        
+    return toc 
 
 
+class Walker:
+    def __init__(self, targets: dict) -> None:
+        self.t = targets
+        self.buf = []
+        self.out = []
+        pass
 
-    pass    
-
+    def walk(self):
+        pass
 
 
 
 def parse_filing(html: str):
     soup = prepare(html)
     toc = read_toc(soup)
-
+    targets = {t: (p, i) for p, i, t in toc}
+    w = Walker(targets=targets)
+    w.walk()
     pass
 
 
