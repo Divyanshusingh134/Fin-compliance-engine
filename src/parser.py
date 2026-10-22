@@ -1,17 +1,25 @@
 import re
 from bs4 import BeautifulSoup
+from dataclasses import dataclass, field
 
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
 PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
 
 
+@dataclass
+class Block:
+
+    kind: str # heading , para, pagebreak, table, anchor
+    text: str = ""
+    level: int = 0 # for headings
+    rows: list = field(default_factory=list)  # for tables
 
 
 def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
-# ------ clean the document
+
 def prepare(html: str) -> BeautifulSoup:
     soup = BeautifulSoup(html, 'xml')
     for t in soup.find_all(['script', 'style', 'title', 'img', 'nonscript']):
