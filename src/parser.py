@@ -26,7 +26,7 @@ class Block:
 def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
-
+# ---------------------------------------------------------------- 
 def prepare(html: str) -> BeautifulSoup:
     soup = BeautifulSoup(html, 'xml')
     for t in soup.find_all(['script', 'style', 'title', 'img', 'nonscript']):
@@ -66,6 +66,7 @@ def read_toc(soup: BeautifulSoup) -> list:
 
     return toc 
 
+# ---------------------------------------------------------------- 
 
 @lru_cache(maxsize=None)
 def parse_styling(style:str):
@@ -109,7 +110,10 @@ def collect_runs(node, inherited=(False, False)):
             runs += collect_runs(n, tag_flags(n, *inherited))
     return runs
 
+def classify(text, flags):
+    pass
 
+# ---------------------------------------------------------------- 
 class Walker:
     def __init__(self, targets: dict) -> None:
         self.t = targets
@@ -165,12 +169,12 @@ class Walker:
             else:
                 runs.append(node)
 
-        text = norm("".join(runs))
+        text = norm("".join(t for t, _, _ in runs))
         if not text or FOOTER_RE.match(text):
             return
-
-        
-
+        flags = [(b, i) for t, b, i in runs if t.strip() not in("®", "™", "℠", "©")]
+        if lvl:= classify(text, flags):
+            pass
         pass
 
 
