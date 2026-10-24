@@ -85,6 +85,12 @@ def table_grid(table: BeautifulSoup):
                 span = int(colspan)
             except (ValueError, TypeError):
                 span = 1
+            row.append(cell_text(td=td))
+            row.extend([""] * (span - 1))
+        grid.append(row)
+
+    width = max((len(r) for r in grid), default=0)
+    return [r + [""] * (width - len(r)) for r in grid]
 
 
 
