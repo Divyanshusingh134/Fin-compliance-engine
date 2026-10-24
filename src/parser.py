@@ -8,6 +8,8 @@ HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
 PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
 BULLET_RE = re.compile(r"^[•▪◦]\s*")
+NUM_RE = re.compile(r"^[\$\(\-]*\s*\d[\d,\.]*\s*[\)%]*$")
+YEAR_RE = re.compile(r"^(19|20)\d{2}$")
 W_RE = re.compile(r"font-weight\s*:\s*(\w+)")
 S_RE = re.compile(r"font-style\s*:\s*(\w+)")
 FOOTER_RE = re.compile(r"^(?:.{0,80}\|\s*\d{4}\s+Form\s+(?:10|8)-[KQ]\s*\|\s*\d+\s*|\d{1,4}\.?|table\s+of\s+contents)$", re.I)
@@ -69,8 +71,7 @@ def read_toc(soup: BeautifulSoup) -> list:
 
 # ---------------------------------------------------------------- 
 def is_num(c):
-    return
-
+    return c in DASH or (bool(NUM_RE.match(c)) and not YEAR_RE.match(c))
 def cell_text(td: Tag):
     return norm(td.get_text(""))
 
@@ -96,7 +97,6 @@ def table_grid(table: BeautifulSoup):
 
 def is_data_table(rows: list[list]):
     return len(rows) >= 2 and any(len(r) >= 2 and any(is_num(c) for c in r[1:]) for r in rows)
-
 
 def attach_symbols(grid):
     for row in grid:
