@@ -257,6 +257,12 @@ class Walker:
         if not is_data_table(table):
             for r in rows:
                 text = " ".join(c for c in r if c)
+                if text and not FOOTER_RE.match(text):
+                    self.out.append(Block("para", text=text))
+            return 
+
+        
+
 
 
 def parse_filing(html: str):
