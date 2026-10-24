@@ -247,9 +247,9 @@ class Walker:
 
     def table(self, table):
         rows = table_rows(table=table)
-        pass
-
-
+        if not rows:
+            return
+        
 
 
 def parse_filing(html: str):
