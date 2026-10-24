@@ -110,6 +110,9 @@ def attach_symbols(grid):
 
 def table_rows(table):
     grid = attach_symbols(table_grid(table=table))
+    grid = [row for row in grid if any(row)]
+    if not grid:
+        return []
 
 
 
