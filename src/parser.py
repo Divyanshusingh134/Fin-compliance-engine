@@ -254,7 +254,9 @@ class Walker:
         rows = table_rows(table=table)
         if not rows:
             return
-        
+        if not is_data_table(table):
+            for r in rows:
+                text = " ".join(c for c in r if c)
 
 
 def parse_filing(html: str):
