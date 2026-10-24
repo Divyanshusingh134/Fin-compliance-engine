@@ -68,6 +68,8 @@ def read_toc(soup: BeautifulSoup) -> list:
     return toc 
 
 # ---------------------------------------------------------------- 
+def is_num(c):
+    return
 
 def cell_text(td: Tag):
     return norm(td.get_text(""))
@@ -91,6 +93,9 @@ def table_grid(table: BeautifulSoup):
 
     width = max((len(r) for r in grid), default=0)
     return [r + [""] * (width - len(r)) for r in grid]
+
+def is_data_table(rows: list[list]):
+    return len(rows) >= 2 and any(len(r) >= 2 and any(is_num(c) for c in r[1:]) for r in rows)
 
 
 def attach_symbols(grid):
