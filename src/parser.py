@@ -69,6 +69,31 @@ def read_toc(soup: BeautifulSoup) -> list:
 
 # ---------------------------------------------------------------- 
 
+def cell_text(td: Tag):
+    return norm(td.get_text(""))
+
+def table_grid(table: BeautifulSoup):
+    grid = []
+    for tr in table.find_all('tr'):
+        row = []
+        for td in tr.find_all(['th', 'td']):
+            colspan = td.get("colspan") or "1"
+            if isinstance(colspan, list):
+                colspan = colspan[0]
+
+            try:
+                span = int(colspan)
+            except (ValueError, TypeError):
+                span = 1
+
+
+
+
+
+
+
+        
+# ---------------------------------------------------------------- 
 @lru_cache(maxsize=None)
 def parse_styling(style:str):
     bold = ital = None
@@ -143,8 +168,6 @@ class Walker:
             if v in self.t:
                 self.out.append(Block("anchor", v))
 
-        
-
     def flush(self):
         self.leaf(self.buf)
         self.buf = []
@@ -166,7 +189,6 @@ class Walker:
             if ch.name == 'table':
                 self.flush()
                 continue
-
 
             if ch.name in BLOCK:
                 self.flush()
@@ -197,7 +219,6 @@ class Walker:
             return
         if BULLET_RE.match(text):
             text = "- " + BULLET_RE.sub("", text)
-
         self.out.append(Block("para", text=text))
 
 
