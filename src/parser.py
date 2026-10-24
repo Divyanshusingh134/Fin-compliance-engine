@@ -114,6 +114,9 @@ def table_rows(table):
     if not grid:
         return []
 
+    keep = [j for j in range(grid[0]) if any(r[j] for r in grid)]
+    
+
 
 
 
