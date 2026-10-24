@@ -13,7 +13,7 @@ S_RE = re.compile(r"font-style\s*:\s*(\w+)")
 FOOTER_RE = re.compile(r"^(?:.{0,80}\|\s*\d{4}\s+Form\s+(?:10|8)-[KQ]\s*\|\s*\d+\s*|\d{1,4}\.?|table\s+of\s+contents)$", re.I)
 BLOCK     = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
              "section", "center", "blockquote"]
-
+CURRENCY, SUFFIX, DASH = {"$", "€", "£"}, {"%", ")", "%)"}, {"—", "–", "-"}
 
 @dataclass
 class Block:
@@ -93,6 +93,23 @@ def table_grid(table: BeautifulSoup):
     return [r + [""] * (width - len(r)) for r in grid]
 
 
+def attach_symbols(grid):
+    for row in grid:
+        for j, c in enumerate(row):
+            if c in CURRENCY:
+                k = next((k for k in range(j + 1, len(row)) if row[k]), None)
+                if k is not None:
+                    row[k] += c + row[k]
+                    row[j] = ""
+            if c in SUFFIX:
+                k = next((k for k in range(j - 1, -1, -1) if row[k]), None)
+                if k is not None:
+                    row[k] += c
+                    row[j] = ""
+    return grid
+
+def table_rows(table):
+    grid = attach_symbols(table_grid(table=table))
 
 
 
