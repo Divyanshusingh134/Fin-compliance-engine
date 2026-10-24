@@ -116,7 +116,6 @@ def table_rows(table):
 
     keep = [j for j in range(grid[0]) if any(r[j] for r in grid)]
     return [[r[j] for j in keep]for r in grid]
-
         
 # ---------------------------------------------------------------- 
 @lru_cache(maxsize=None)
@@ -245,6 +244,10 @@ class Walker:
         if BULLET_RE.match(text):
             text = "- " + BULLET_RE.sub("", text)
         self.out.append(Block("para", text=text))
+
+    def table(self, table):
+        rows = table_rows(table=table)
+        pass
 
 
 
