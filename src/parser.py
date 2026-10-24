@@ -115,11 +115,7 @@ def table_rows(table):
         return []
 
     keep = [j for j in range(grid[0]) if any(r[j] for r in grid)]
-    
-
-
-
-
+    return [[r[j] for j in keep]for r in grid]
 
         
 # ---------------------------------------------------------------- 
