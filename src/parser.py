@@ -217,6 +217,7 @@ class Walker:
 
             if ch.name == 'table':
                 self.flush()
+                
                 continue
 
             if ch.name in BLOCK:
