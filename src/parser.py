@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
 PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
+BULLET_RE = re.compile(r"^[•▪◦]\s*")
 W_RE = re.compile(r"font-weight\s*:\s*(\w+)")
 S_RE = re.compile(r"font-style\s*:\s*(\w+)")
 FOOTER_RE = re.compile(r"^(?:.{0,80}\|\s*\d{4}\s+Form\s+(?:10|8)-[KQ]\s*\|\s*\d+\s*|\d{1,4}\.?|table\s+of\s+contents)$", re.I)
@@ -37,7 +38,7 @@ def prepare(html: str) -> BeautifulSoup:
             t.decompose()
 
     for t in soup.find_all(lambda x: ":" in x.name):
-        t.unwrap
+        t.unwrap()
 
     for t in soup.find_all('br'):
         t.replace_with(' ')
@@ -71,10 +72,10 @@ def read_toc(soup: BeautifulSoup) -> list:
 @lru_cache(maxsize=None)
 def parse_styling(style:str):
     bold = ital = None
-    if m:= W_RE.match(style):
+    if m:= W_RE.search(style):
         v = m.group(1)
         bold = v in ('bold', 'bolder') or (v.isdigit() and int(v) >= 600)
-    if m:= S_RE.match(style):
+    if m:= S_RE.search(style):
         ital = (m.group(1) == "italic")
 
     return bold, ital
@@ -111,7 +112,23 @@ def collect_runs(node, inherited=(False, False)):
     return runs
 
 def classify(text, flags):
-    pass
+    if not flags:
+        return 0
+
+    bold, ital, n = all(b for b, _ in flags) , all(i for _, i in flags), len(text)
+
+    if bold and n < 200 and PART_RE.match(text):
+        return 1
+    if bold and n < 200 and ITEM_RE.match(text):
+        return 2
+    if bold and ital and n <= 500:
+        return 4
+    if bold and n <= 150:
+        return 3
+    if ital and n <= 80:
+        return 4 
+    return 0
+
 
 # ---------------------------------------------------------------- 
 class Walker:
@@ -148,34 +165,41 @@ class Walker:
 
             if ch.name == 'table':
                 self.flush()
+                continue
 
 
-            if ch in BLOCK:
+            if ch.name in BLOCK:
                 self.flush()
                 if ch.find(BLOCK + ['table']):
-                    pass
-                pass
+                    self.anchor(ch, deep=False)
+                    self.walk(ch)
+                    self.flush()
+                else:
+                    self.leaf(ch)
             else :
                 self.buf.append(ch)
-
-        pass
 
     def leaf(self, nodes):
         runs = []
         for node in nodes:
             if isinstance(node, Tag): 
                 self.anchor(node)
-                runs += collect_runs(node=node)
+                runs += collect_runs(node, tag_flags(node, (False, False)))
             else:
-                runs.append(node)
+                runs.append((str(node), False, False))
 
         text = norm("".join(t for t, _, _ in runs))
         if not text or FOOTER_RE.match(text):
             return
         flags = [(b, i) for t, b, i in runs if t.strip() not in("®", "™", "℠", "©")]
         if lvl:= classify(text, flags):
-            pass
-        pass
+            self.out.append(Block("heading", text, level=lvl))
+            return
+        if BULLET_RE.match(text):
+            text = "- " + BULLET_RE.sub("", text)
+
+        self.out.append(Block("para", text=text))
+
 
 
 
