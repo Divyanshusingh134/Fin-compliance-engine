@@ -70,7 +70,7 @@ def read_toc(soup: BeautifulSoup) -> list:
             part = m.group(1).upper()
             toc.append((part, None, target))
         elif (m:= ITEM_RE.match(txt)) and target not in seen:
-            item = m.group(0).upper()
+            item = m.group(1).upper()
             toc.append((part, item, target))
         seen.add(target)
 
@@ -111,9 +111,9 @@ def attach_symbols(grid):
             if c in CURRENCY:
                 k = next((k for k in range(j + 1, len(row)) if row[k]), None)
                 if k is not None:
-                    row[j] += c + row[k]
+                    row[j] = c + row[k]
                     row[k] = ""
-            if c in SUFFIX:
+            elif c in SUFFIX:
                 k = next((k for k in range(j - 1, -1, -1) if row[k]), None)
                 if k is not None:
                     row[k] += c
@@ -271,7 +271,7 @@ class Walker:
             return 
         h = 0
         # Headers
-        while h < len(rows) - 1 and len(rows[h]) >= 2 and not any(is_num(c) for c in rows[h]):
+        while h < len(rows) - 1 and any(rows[h][1:]) and not any(is_num(c) for c in rows[h]):
             h += 1
 
         header = rows[:h]
