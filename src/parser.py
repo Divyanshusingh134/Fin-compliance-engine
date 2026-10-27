@@ -38,7 +38,7 @@ def norm(s: str) -> str:
 
 # ---------------------------------------------------------------- 
 def prepare(html: str) -> BeautifulSoup:
-    soup = BeautifulSoup(html, 'xml')
+    soup = BeautifulSoup(html, 'lxml')
     for t in soup.find_all(['script', 'style', 'title', 'img', 'nonscript']):
         t.decompose()
 
@@ -75,59 +75,6 @@ def read_toc(soup: BeautifulSoup) -> list:
         seen.add(target)
 
     return toc 
-
-# ---------------------------------------------------------------- 
-def is_num(c):
-    return c in DASH or (bool(NUM_RE.match(c)) and not YEAR_RE.match(c))
-def cell_text(td: Tag):
-    return norm(td.get_text(""))
-
-def table_grid(table: BeautifulSoup):
-    grid = []
-    for tr in table.find_all('tr'):
-        row = []
-        for td in tr.find_all(['th', 'td']):
-            colspan = td.get("colspan") or "1"
-            if isinstance(colspan, list):
-                colspan = colspan[0]
-
-            try:
-                span = int(colspan)
-            except (ValueError, TypeError):
-                span = 1
-            row.append(cell_text(td=td))
-            row.extend([""] * (span - 1))
-        grid.append(row)
-
-    width = max((len(r) for r in grid), default=0)
-    return [r + [""] * (width - len(r)) for r in grid]
-
-def is_data_table(rows: list[list]):
-    return len(rows) >= 2 and any(len(r) >= 2 and any(is_num(c) for c in r[1:]) for r in rows)
-
-def attach_symbols(grid):
-    for row in grid:
-        for j, c in enumerate(row):
-            if c in CURRENCY:
-                k = next((k for k in range(j + 1, len(row)) if row[k]), None)
-                if k is not None:
-                    row[j] = c + row[k]
-                    row[k] = ""
-            elif c in SUFFIX:
-                k = next((k for k in range(j - 1, -1, -1) if row[k]), None)
-                if k is not None:
-                    row[k] += c
-                    row[j] = ""
-    return grid
-
-def table_rows(table) -> list[list]:
-    grid = attach_symbols(table_grid(table=table))
-    grid = [row for row in grid if any(row)]
-    if not grid:
-        return []
-
-    keep = [j for j in range(len(grid[0])) if any(r[j] for r in grid)]
-    return [[r[j] for j in keep]for r in grid]
         
 # ---------------------------------------------------------------- 
 @lru_cache(maxsize=None)
@@ -190,6 +137,64 @@ def classify(text, flags):
         return 4 
     return 0
 
+# ---------------------------------------------------------------- 
+def is_num(c):
+    return c in DASH or (bool(NUM_RE.match(c)) and not YEAR_RE.match(c))
+def cell_text(td: Tag):
+    return norm(td.get_text(""))
+
+def table_grid(table: BeautifulSoup):
+    grid = []
+    for tr in table.find_all('tr'):
+        row = []
+        for td in tr.find_all(['th', 'td']):
+            colspan = td.get("colspan") or "1"
+            if isinstance(colspan, list):
+                colspan = colspan[0]
+
+            try:
+                span = int(colspan)
+            except (ValueError, TypeError):
+                span = 1
+            row.append(cell_text(td=td))
+            row.extend([""] * (span - 1))
+        grid.append(row)
+
+    width = max((len(r) for r in grid), default=0)
+    return [r + [""] * (width - len(r)) for r in grid]
+
+def is_data_table(rows: list[list]):
+    return len(rows) >= 2 and any(len(r) >= 2 and any(is_num(c) for c in r[1:]) for r in rows)
+
+def attach_symbols(grid):
+    for row in grid:
+        for j, c in enumerate(row):
+            if c in CURRENCY:
+                k = next((k for k in range(j + 1, len(row)) if row[k]), None)
+                if k is not None:
+                    row[j] = c + row[k]
+                    row[k] = ""
+            elif c in SUFFIX:
+                k = next((k for k in range(j - 1, -1, -1) if row[k]), None)
+                if k is not None:
+                    row[k] += c
+                    row[j] = ""
+    return grid
+
+def table_rows(table) -> list[list]:
+    grid = attach_symbols(table_grid(table=table))
+    grid = [row for row in grid if any(row)]
+    if not grid:
+        return []
+
+    keep = [j for j in range(len(grid[0])) if any(r[j] for r in grid)]
+    return [[r[j] for j in keep]for r in grid]
+
+def markdown_table(header: list[str], body:list[list[str]]):
+    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    lines += ["|" + " | ".join(r) + " |" for r in body]
+    return "\n".join(lines)
+
 
 # ---------------------------------------------------------------- 
 class Walker:
@@ -205,7 +210,9 @@ class Walker:
                 self.out.append(Block("anchor", v))
 
     def flush(self):
-        self.leaf(self.buf)
+        if self.buf:
+            self.leaf(self.buf)
+        
         self.buf = []
         pass
 
@@ -235,7 +242,7 @@ class Walker:
                     self.walk(ch)
                     self.flush()
                 else:
-                    self.leaf(ch)
+                    self.leaf([ch])
             else :
                 self.buf.append(ch)
 
@@ -274,7 +281,15 @@ class Walker:
         while h < len(rows) - 1 and any(rows[h][1:]) and not any(is_num(c) for c in rows[h]):
             h += 1
 
-        header = rows[:h]
+        hdr = rows[:h]
+        header = hdr[-1] if hdr else [""] * len(rows[0])
+
+        caption = [" ".join(c for c in r if c) for r in hdr[:-1]]
+        body = rows[h:]
+        text = "\n".join(caption + [markdown_table(header=header, body=body)])
+        self.out.append(Block("table", text=text, rows=rows))
+
+
 
 
 def parse_filing(html: str):
