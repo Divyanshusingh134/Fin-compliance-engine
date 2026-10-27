@@ -5,17 +5,24 @@ from functools import lru_cache
 from dataclasses import dataclass, field
 
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
-PART_RE = re.compile(r"^part\s+([ivx])+\b", re.I)
+PART_RE = re.compile(r"^part\s+([ivx]+)\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
 BULLET_RE = re.compile(r"^[•▪◦]\s*")
-NUM_RE = re.compile(r"^[\$\(\-]*\s*\d[\d,\.]*\s*[\)%]*$")
 YEAR_RE = re.compile(r"^(19|20)\d{2}$")
 W_RE = re.compile(r"font-weight\s*:\s*(\w+)")
 S_RE = re.compile(r"font-style\s*:\s*(\w+)")
 FOOTER_RE = re.compile(r"^(?:.{0,80}\|\s*\d{4}\s+Form\s+(?:10|8)-[KQ]\s*\|\s*\d+\s*|\d{1,4}\.?|table\s+of\s+contents)$", re.I)
+NUM_RE = re.compile(
+    r"^\(?\$?\s*\d{1,3}(,\d{3})+(\.\d+)?\)?%?$"   
+    r"|^\(?\$?\s*\d+\.\d+\)?%?$"                 
+    r"|^\(?\$?\s*\d+\)?%$"                        
+    r"|^\$\s*\d+$"                                
+    r"|^\(\d+\)$"                                
+)
 BLOCK     = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
              "section", "center", "blockquote"]
 CURRENCY, SUFFIX, DASH = {"$", "€", "£"}, {"%", ")", "%)"}, {"—", "–", "-"}
+
 
 @dataclass
 class Block:
@@ -60,7 +67,7 @@ def read_toc(soup: BeautifulSoup) -> list:
         txt = norm(a.get_text(""))
 
         if m:=PART_RE.match(txt):
-            part = m.group(0).upper()
+            part = m.group(1).upper()
             toc.append((part, None, target))
         elif (m:= ITEM_RE.match(txt)) and target not in seen:
             item = m.group(0).upper()
@@ -104,8 +111,8 @@ def attach_symbols(grid):
             if c in CURRENCY:
                 k = next((k for k in range(j + 1, len(row)) if row[k]), None)
                 if k is not None:
-                    row[k] += c + row[k]
-                    row[j] = ""
+                    row[j] += c + row[k]
+                    row[k] = ""
             if c in SUFFIX:
                 k = next((k for k in range(j - 1, -1, -1) if row[k]), None)
                 if k is not None:
@@ -113,13 +120,13 @@ def attach_symbols(grid):
                     row[j] = ""
     return grid
 
-def table_rows(table):
+def table_rows(table) -> list[list]:
     grid = attach_symbols(table_grid(table=table))
     grid = [row for row in grid if any(row)]
     if not grid:
         return []
 
-    keep = [j for j in range(grid[0]) if any(r[j] for r in grid)]
+    keep = [j for j in range(len(grid[0])) if any(r[j] for r in grid)]
     return [[r[j] for j in keep]for r in grid]
         
 # ---------------------------------------------------------------- 
@@ -162,7 +169,7 @@ def collect_runs(node, inherited=(False, False)):
         if isinstance(n, NavigableString):
             runs.append((str(n), *inherited))
         else:
-            runs += collect_runs(n, tag_flags(n, *inherited))
+            runs += collect_runs(n, tag_flags(n, inherited))
     return runs
 
 def classify(text, flags):
@@ -217,7 +224,8 @@ class Walker:
 
             if ch.name == 'table':
                 self.flush()
-                
+                self.anchor(ch)
+                self.table(ch)
                 continue
 
             if ch.name in BLOCK:
@@ -244,7 +252,7 @@ class Walker:
         if not text or FOOTER_RE.match(text):
             return
         flags = [(b, i) for t, b, i in runs if t.strip() not in("®", "™", "℠", "©")]
-        if lvl:= classify(text, flags):
+        if lvl := classify(text, flags):
             self.out.append(Block("heading", text, level=lvl))
             return
         if BULLET_RE.match(text):
@@ -255,15 +263,18 @@ class Walker:
         rows = table_rows(table=table)
         if not rows:
             return
-        if not is_data_table(table):
+        if not is_data_table(rows=rows):
             for r in rows:
                 text = " ".join(c for c in r if c)
                 if text and not FOOTER_RE.match(text):
                     self.out.append(Block("para", text=text))
             return 
+        h = 0
+        # Headers
+        while h < len(rows) - 1 and len(rows[h]) >= 2 and not any(is_num(c) for c in rows[h]):
+            h += 1
 
-        
-
+        header = rows[:h]
 
 
 def parse_filing(html: str):
