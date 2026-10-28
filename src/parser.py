@@ -328,9 +328,15 @@ def parse_filing(html: str):
     for b in merge_pages(w.out):
         if b.kind == 'anchor':
             p, i = targets[b.text]
-            curr = (p, i)
-    
+            curr = (p, i) if i else None
+            if curr:
+                sections.setdefault(curr, [])
+        elif b.kind == "heading" and b.text.upper() == "SIGNATURES":
+            curr = None
 
+        elif curr:
+            sections[curr].append(b)
+    return sections    
 
 if __name__ == "__main__":
     secs = parse_filing(open('filing.html', encoding="utf-8").read())
