@@ -24,8 +24,9 @@ NUM_RE = re.compile(
     r"|^\$\s*\d+$"                                
     r"|^\(\d+\)$"                                
 )
-BLOCK     = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
-             "section", "center", "blockquote"]
+BLOCK = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
+        "section", "center", "blockquote"]
+
 CURRENCY, SUFFIX, DASH = {"$", "€", "£"}, {"%", ")", "%)"}, {"—", "–", "-"}
 
 
@@ -97,7 +98,7 @@ def parse_styling(style:str):
 def tag_flags(tag, parent_flags):
     bold, ital = parent_flags
 
-    if tag.name in ('b', 'bold'):
+    if tag.name in ('b', 'strong'):
         bold = True
     if tag.name in ('i', 'em'):
         ital = True
@@ -219,7 +220,6 @@ class Walker:
     def flush(self):
         if self.buf:
             self.leaf(self.buf)
-        
         self.buf = []
 
     def walk(self, parent):
@@ -264,7 +264,7 @@ class Walker:
         text = norm("".join(t for t, _, _ in runs))
         if not text or FOOTER_RE.match(text):
             return
-        flags = [(b, i) for t, b, i in runs if t.strip() not in("®", "™", "℠", "©")]
+        flags = [(b, i) for t, b, i in runs if t.strip() and t.strip() not in("®", "™", "℠", "©")]
         if lvl := classify(text, flags):
             self.out.append(Block("heading", text, level=lvl))
             return
