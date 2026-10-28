@@ -300,6 +300,7 @@ class Walker:
         text = "\n".join(caption + [markdown_table(header=header, body=body)])
         self.out.append(Block("table", text=text, rows=rows))
 
+# ---------------------------------------------------------------- 
 
 def merge_pages(blocks: list[Block]):
     out, pb = [], False
