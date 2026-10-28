@@ -292,7 +292,7 @@ class Walker:
         for r in raw_hdr:
             if r not in hdr:
                 hdr.append(r)
-                
+
         header = hdr[-1] if hdr else [""] * len(rows[0])
 
         caption = [" ".join(c for c in r if c) for r in hdr[:-1]]
@@ -301,12 +301,35 @@ class Walker:
         self.out.append(Block("table", text=text, rows=rows))
 
 
+def merge_pages(blocks: list[Block]):
+    out, pb = [], False
+    for b in blocks:
+        if b.kind == "pagebreak":
+            pb = True
+            continue
+        if (pb and b.kind == 'para' and out and out[-1].kind == "para" and b.text[:1].islower() and not out[-1].text.rstrip().endswith((".", ":", ";", "?", "!", '"'))):
+            out[-1].text = " " + b.text
+        else:
+            out.append(b)
+
+        pb = False
+    return out
+
+
 def parse_filing(html: str):
     soup = prepare(html)
     toc = read_toc(soup)
     targets = {t: (p, i) for p, i, t in toc}
     w = Walker(targets=targets)
     w.walk(soup.body or soup)
+    w.flush()
+    sections = {}
+    curr = None
+    for b in merge_pages(w.out):
+        if b.kind == 'anchor':
+            p, i = targets[b.text]
+            curr = (p, i)
+    
 
 
 if __name__ == "__main__":
