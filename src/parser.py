@@ -287,7 +287,12 @@ class Walker:
         while h < len(rows) - 1 and any(rows[h][1:]) and not any(is_num(c) for c in rows[h]):
             h += 1
 
-        hdr = rows[:h]
+        raw_hdr = rows[:h]
+        hdr = []
+        for r in raw_hdr:
+            if r not in hdr:
+                hdr.append(r)
+                
         header = hdr[-1] if hdr else [""] * len(rows[0])
 
         caption = [" ".join(c for c in r if c) for r in hdr[:-1]]
