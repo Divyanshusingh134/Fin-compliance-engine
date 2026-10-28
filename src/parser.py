@@ -4,6 +4,11 @@ from bs4.element import NavigableString
 from functools import lru_cache
 from dataclasses import dataclass, field
 
+import warnings
+from bs4 import XMLParsedAsHTMLWarning
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+
+
 HIDDEN_RE = re.compile(r"display\s*:\s*none", re.I)
 PART_RE = re.compile(r"^part\s+([ivx]+)\b", re.I)
 ITEM_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)\b", re.I)
@@ -188,11 +193,13 @@ def table_rows(table) -> list[list]:
         return []
 
     keep = [j for j in range(len(grid[0])) if any(r[j] for r in grid)]
-    return [[r[j] for j in keep]for r in grid]
+    result = [[r[j] for j in keep]for r in grid]
+    assert len({len(r) for r in result}) == 1, "table grid is not rectangular"
+    return result
 
 def markdown_table(header: list[str], body:list[list[str]]):
     lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-    lines += ["|" + " | ".join(r) + " |" for r in body]
+    lines += ["| " + " | ".join(r) + " |" for r in body]
     return "\n".join(lines)
 
 
@@ -214,7 +221,6 @@ class Walker:
             self.leaf(self.buf)
         
         self.buf = []
-        pass
 
     def walk(self, parent):
         for ch in parent.children:
@@ -290,15 +296,12 @@ class Walker:
         self.out.append(Block("table", text=text, rows=rows))
 
 
-
-
 def parse_filing(html: str):
     soup = prepare(html)
     toc = read_toc(soup)
     targets = {t: (p, i) for p, i, t in toc}
     w = Walker(targets=targets)
     w.walk(soup.body or soup)
-    pass
 
 
 if __name__ == "__main__":
