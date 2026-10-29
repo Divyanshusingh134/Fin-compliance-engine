@@ -339,5 +339,9 @@ def parse_filing(html: str):
             sections[curr].append(b)
     return sections    
 
+def section_markdown(blocks: list[Block]):
+    return "\n\n".join(("#" * b.level + " " + b.text) if b.kind == "heading" else b.text for b in blocks)
+
+
 if __name__ == "__main__":
     secs = parse_filing(open('filing.html', encoding="utf-8").read())
