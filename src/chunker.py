@@ -14,6 +14,9 @@ class Chunker:
     def flush(self):
         if self.cur:
             self.chunks.append({"type": "text", "heading_path": self.heading_path(), "text": self.heading_path() + "\n" + "\n\n".join(self.cur)})
+        self.cur = []
+        n = 0
+        
 
     def walk(self):
 
@@ -34,5 +37,5 @@ class Chunker:
 
                 self.cur.append(b.text)
                 self.n += w
-            
 
+        
