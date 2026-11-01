@@ -1,6 +1,7 @@
 import os
 import asyncio
-from datetime import datetime
+from typing import cast
+from datetime import datetime, date
 from db_utils import get_db_pool, insert_filing
 from edgar import Company, set_identity
 from dotenv import load_dotenv
@@ -14,6 +15,11 @@ set_identity(f"{MY_NAME} {MY_EMAIL}")
 
 form_type = ("10-K", "8-K", "10-Q")
 
+async def sync_parse_and_chunk(filing_obj, form):
+    html_content = filing_obj.html()
+    
+
+
 async def ingest_filing_data(pool, ticker: str):
     company = Company(f"{ticker}")
 
@@ -26,7 +32,8 @@ async def ingest_filing_data(pool, ticker: str):
             filing_date=f"{start_year}-01-01:{current_year}-12-31"
         )
         for filing in filing_collection:
-            fiscal_year = int(filing.filing_date.split('-')[0])
+            filing_date = cast(date, filing.filing_date)
+            fiscal_year = filing_date.year
             assert filing.document is not None
             filing_data = {
                 'cik': filing.cik,
@@ -40,10 +47,11 @@ async def ingest_filing_data(pool, ticker: str):
             }
             filing_ID = await insert_filing(pool=pool, filing_data=filing_data)
             assert filing_ID is not None
-            await ingest_section_data(filing_id=filing_ID, form=form)
+            await ingest_section_data(filing_id=filing_ID, form=form, filing_obj=filing)
 
-async def ingest_section_data(filing_id: str, form):
-    ...
+async def ingest_section_data(filing_id: str, form:str, filing_obj):
+    parsed_sections = await asyncio.to_thread(sync_parse_and_chunk, filing_obj=filing_obj, form=form)
+
 
 
 
