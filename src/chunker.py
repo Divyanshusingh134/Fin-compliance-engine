@@ -1,5 +1,7 @@
+from parser import Block
+
 class Chunker:
-    def __init__(self, blocks, max_words = 350):
+    def __init__(self, blocks:list[Block], max_words = 350):
         self.chunks = []
         self.cur = []
         self.n = 0
