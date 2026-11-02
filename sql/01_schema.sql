@@ -18,8 +18,9 @@ CREATE INDEX filings_indx ON filings(ticker, fiscal_year, form_type);
 CREATE TABLE IF NOT EXISTS sections(
     section_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
     filing_id UUID NOT NULL REFERENCES filings(filing_id) ON DELETE CASCADE,
+    part_no TEXT,
     item_no TEXT NOT NULL,
-    item_title TEXT NOT NULL,
+    item_title TEXT,
     word_count INTEGER,
     CONSTRAINT uq_sections UNIQUE(filing_id, item_no)
 );
