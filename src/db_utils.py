@@ -42,15 +42,15 @@ async def insert_filing(pool, filing_data: dict) -> str | None:
             filing_data["form_type"],
             filing_data["filing_date"],
             filing_data["fiscal_year"],
-            filing_data["accesssion_no"],
+            filing_data["accession_no"],
             filing_data["source_url"]
         )
         
 async def insert_section(pool, section_data: dict) -> str | None:
     INSERT_SECTIONS_DATA = """INSERT INTO sections(
-    filing_id, item_no, item_title, word_count)
-    VALUES ($1, $2, $3, $4)
-    ON CONFLICT (section_id, chunk_index) DO NOTHING 
+    filing_id, part_no, item_no, item_title, word_count)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (filing_id, item_no) DO NOTHING 
     RETURNING section_id"""
 
     async with pool.acquire() as conn:
@@ -58,6 +58,7 @@ async def insert_section(pool, section_data: dict) -> str | None:
         return await conn.fetchval(
             INSERT_SECTIONS_DATA,
             section_data['filing_id'],
+            section_data['part_no'],
             section_data['item_no'],
             section_data['item_title'],
             section_data['word_count']
@@ -66,8 +67,8 @@ async def insert_section(pool, section_data: dict) -> str | None:
 
 async def insert_chunks(pool, chunks_data: list[tuple]) -> str | None:
     INSERT_CHUNKS = """INSERT INTO chunks(
-    filing_id, section_id, chunk_index, raw_text, lexical_search, embedding)
-    VALUES($1, $2, $3, $4, $5, $6) 
+    filing_id, section_id, heading_path, chunk_index, raw_text, embedding, structured_data)
+    VALUES($1, $2, $3, $4, $5, $6, $7::jsonb) 
     ON CONFLICT (section_id, chunk_index) DO NOTHING 
     RETURNING chunk_id"""
 
