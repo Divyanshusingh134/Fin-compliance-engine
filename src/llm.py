@@ -13,7 +13,7 @@ client = genai.Client()
 logger = logging.getLogger(__name__)
 
 
-async def embed(texts: list[str], max_retries: int = 3):
+async def embed(texts: list[str], max_retries: int = 3)->list[list[float]] | None:
     if not texts:
         return []
 
