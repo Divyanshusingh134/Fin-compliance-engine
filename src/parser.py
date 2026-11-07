@@ -29,7 +29,6 @@ BLOCK = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
 
 CURRENCY, SUFFIX, DASH = {"$", "€", "£"}, {"%", ")", "%)"}, {"—", "–", "-"}
 
-
 @dataclass
 class Block:
 
@@ -338,6 +337,33 @@ def parse_filing(html: str):
         elif curr:
             sections[curr].append(b)
     return sections    
+
+# ---------------------------------------------------------------- 
+
+def exhibit_tables(soup: BeautifulSoup):
+    found = []
+
+    for table in soup.find_all("table"):
+        head = " ".join(r.get_text(" ", strip=True).lower() for r in table.find_all("tr", limit=3))
+        if "exhibit" in head and "description" in head:
+            found.append(table)
+
+    return found
+
+
+def extract_exhibits(soup: BeautifulSoup):
+    out = []
+    seen_refs = set()
+    seen_urls = set()
+
+
+def proces_exhibits(html_content):
+    soup = BeautifulSoup(html_content, "lxml")
+
+    exhibits_metadata = extract_exhibits(soup)
+    
+
+
 
 def section_markdown(blocks: list[Block]):
     return "\n\n".join(("#" * b.level + " " + b.text) if b.kind == "heading" else b.text for b in blocks)
