@@ -2,6 +2,7 @@ import re
 from bs4 import BeautifulSoup, Comment, Tag
 from bs4.element import NavigableString
 from functools import lru_cache
+from urllib.parse import urljoin
 from dataclasses import dataclass, field
 
 import warnings
@@ -352,7 +353,7 @@ def exhibit_tables(soup: BeautifulSoup)->list:
     return found
 
 
-def extract_exhibits(soup: BeautifulSoup):
+def extract_exhibits(soup: BeautifulSoup, base_url):
     out = []
     seen_refs = set()
     seen_urls = set()
@@ -374,16 +375,31 @@ def extract_exhibits(soup: BeautifulSoup):
             if ref in seen_refs:
                 continue
 
+            absolute_url = urljoin(base_url, a['href'])
+            if not absolute_url.lower().split('?')[0].endswith((".htm", ".html")):
+                continue
+
+            is_duplicate_url = absolute_url in seen_urls
+
+            seen_urls.add(absolute_url)
+
             seen_refs.add(ref)
+            out.append({
+                "exhibit_reference": ref,
+                "agreement_name": norm(a.get_text()),
+                "url": absolute_url,
+                "requires_download": not is_duplicate_url
+            })
+
+    return out
 
 
 
 
 
-def proces_exhibits(html_content):
+def proces_exhibits(html_content, base_url):
     soup = BeautifulSoup(html_content, "lxml")
-
-    exhibits_metadata = extract_exhibits(soup)
+    exhibits_metadata = extract_exhibits(soup, base_url=base_url)
     
 
 
