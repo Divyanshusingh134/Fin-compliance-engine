@@ -28,6 +28,7 @@ BLOCK = ["div", "p", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
         "section", "center", "blockquote"]
 
 CURRENCY, SUFFIX, DASH = {"$", "€", "£"}, {"%", ")", "%)"}, {"—", "–", "-"}
+EXH_NO = re.compile(r"^\d{1,3}(\.\d+)?\**$")
 
 @dataclass
 class Block:
@@ -340,7 +341,7 @@ def parse_filing(html: str):
 
 # ---------------------------------------------------------------- 
 
-def exhibit_tables(soup: BeautifulSoup):
+def exhibit_tables(soup: BeautifulSoup)->list:
     found = []
 
     for table in soup.find_all("table"):
@@ -355,6 +356,28 @@ def extract_exhibits(soup: BeautifulSoup):
     out = []
     seen_refs = set()
     seen_urls = set()
+    for table in exhibit_tables(soup=soup):
+        for tr in table.find_all("tr"):
+            tds = tr.find_all("td")
+            if not tds:
+                continue
+
+            a = tr.find("a", href=True)
+            if not tds or not a or a["href"].startswith("#"):
+                continue
+
+            no = norm(tds[0].get_text(""))
+            if not EXH_NO.match(no):
+                continue
+            ref = no.rstrip("*")
+
+            if ref in seen_refs:
+                continue
+
+            seen_refs.add(ref)
+
+
+
 
 
 def proces_exhibits(html_content):
